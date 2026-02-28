@@ -1,0 +1,20 @@
+# Data (not committed)
+data/
+
+# Virtual environments
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Local tooling caches
+.uv-cache/
+.tmp/
+
+# OS/editor
+.DS_Store
+Thumbs.db
