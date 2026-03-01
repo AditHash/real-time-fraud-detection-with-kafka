@@ -5,10 +5,12 @@ import contextlib
 import logging
 import os
 import sqlite3
+from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import StreamingResponse
 
 from common.codec import json_loads
 from common.kafka import create_consumer, stop_safely
@@ -99,6 +101,12 @@ async def _consumer_loop(app: FastAPI) -> None:
                 logger.exception("db_insert_failed")
                 continue
 
+            for q in list(app.state.subscribers):
+                try:
+                    q.put_nowait(payload)
+                except asyncio.QueueFull:
+                    continue
+
     finally:
         await stop_safely(consumer)
 
@@ -112,6 +120,7 @@ def create_app() -> FastAPI:
         app.state.stop_event = asyncio.Event()
         app.state.db_path = _db_path()
         app.state.db = _connect_db(app.state.db_path)
+        app.state.subscribers = set()
         app.state.consumer_task = asyncio.create_task(_consumer_loop(app))
 
     @app.on_event("shutdown")
@@ -166,6 +175,25 @@ def create_app() -> FastAPI:
 
         alerts = await asyncio.to_thread(_query)
         return {"items": alerts, "limit": limit, "offset": offset}
+
+    @app.get("/alerts/stream")
+    async def stream_alerts() -> StreamingResponse:
+        queue: asyncio.Queue[str] = asyncio.Queue(maxsize=1000)
+        app.state.subscribers.add(queue)
+
+        async def gen() -> AsyncIterator[bytes]:
+            try:
+                yield b"event: ready\ndata: ok\n\n"
+                while True:
+                    try:
+                        payload = await asyncio.wait_for(queue.get(), timeout=15.0)
+                        yield f"data: {payload}\n\n".encode("utf-8")
+                    except asyncio.TimeoutError:
+                        yield b": keep-alive\n\n"
+            finally:
+                app.state.subscribers.discard(queue)
+
+        return StreamingResponse(gen(), media_type="text/event-stream")
 
     @app.get("/alerts/{alert_id}")
     async def get_alert(alert_id: str) -> dict[str, Any]:
