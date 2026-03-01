@@ -129,3 +129,23 @@ services:
       GROUP_ML_ENGINE: "ml-engine"
       MODEL_DIR: "/app/model"
     command: ["python", "-m", "consumers.ml_engine.main"]
+
+  csv-producer:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.producer
+    profiles: ["demo"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+      init-kafka:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      TOPIC_TRANSACTIONS: "transactions"
+      DATA_PATH: "/app/data/creditcard.csv"
+      PRODUCER_SLEEP_MS: "5"
+      MAX_MESSAGES: "0"
+    volumes:
+      - "./data:/app/data:ro"
+    command: ["python", "-m", "producer.csv_producer"]
