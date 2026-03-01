@@ -30,3 +30,30 @@ Stop:
 ```bash
 docker compose down
 ```
+
+## Phase 3 (Producer + Consumers + FastAPI)
+
+Bring up the stack:
+
+```bash
+docker compose up -d
+```
+
+APIs:
+
+- Transaction API: `http://localhost:8000` (POST `/transactions`)
+- Alert Service: `http://localhost:8001` (GET `/alerts`)
+
+Send a test transaction:
+
+```bash
+curl -X POST http://localhost:8000/transactions ^
+  -H "Content-Type: application/json" ^
+  -d "{\"features\": {\"Amount\": 5000, \"V14\": -10}}"
+```
+
+Start the CSV producer (streams `./data/creditcard.csv` into Kafka):
+
+```bash
+docker compose --profile demo up -d csv-producer
+```
