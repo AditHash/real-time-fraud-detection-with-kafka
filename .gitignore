@@ -1,6 +1,9 @@
 # Data (not committed)
 data/
 
+# Repo instructions (edited locally)
+Agents.md
+
 # Virtual environments
 .venv/
 
