@@ -4,6 +4,9 @@ data/
 # Repo instructions (edited locally)
 Agents.md
 
+# Optional large model artifacts
+model/model_xgb.pkl
+
 # Virtual environments
 .venv/
 
