@@ -1,0 +1,17 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+COPY requirements.ml_inference.txt /app/requirements.ml_inference.txt
+RUN pip install --no-cache-dir -r /app/requirements.ml_inference.txt
+
+COPY consumers /app/consumers
+COPY common /app/common
+COPY model /app/model
+
+ENV PYTHONPATH=/app
+
+CMD ["python", "-m", "consumers.rule_engine.main"]

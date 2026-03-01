@@ -1,0 +1,16 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+COPY requirements.services.txt /app/requirements.services.txt
+RUN pip install --no-cache-dir -r /app/requirements.services.txt
+
+COPY services /app/services
+COPY common /app/common
+
+ENV PYTHONPATH=/app
+
+CMD ["python", "-m", "services.transaction_api.app"]
