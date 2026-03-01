@@ -62,6 +62,7 @@ async def send_alert(
     transaction_id = str(event.get("transaction_id") or "")
     alert = {
         "alert_id": str(uuid.uuid4()),
+        "kind": "confirmed",
         "transaction_id": transaction_id,
         "event_time": event.get("event_time"),
         "detected_time": utc_now_iso(),

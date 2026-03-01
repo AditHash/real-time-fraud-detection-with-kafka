@@ -49,7 +49,8 @@ async def send_candidate(
 ) -> None:
     transaction_id = str(event.get("transaction_id") or "")
     candidate = {
-        "candidate_id": str(uuid.uuid4()),
+        "alert_id": str(uuid.uuid4()),
+        "kind": "candidate",
         "transaction_id": transaction_id,
         "event_time": event.get("event_time"),
         "detected_time": utc_now_iso(),
