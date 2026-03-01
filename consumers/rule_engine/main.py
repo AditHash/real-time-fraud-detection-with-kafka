@@ -12,7 +12,7 @@ from aiokafka import AIOKafkaProducer
 from common.codec import json_dumps, json_loads, utc_now_iso
 from common.kafka import create_consumer, create_producer, stop_safely
 from common.logging import setup_logging
-from common.settings import group_rule_engine, topic_fraud_alerts, topic_transactions
+from common.settings import group_rule_engine, topic_rule_candidates, topic_transactions
 
 
 logger = logging.getLogger("rule_engine")
@@ -44,10 +44,12 @@ def evaluate_rules(event: dict[str, Any]) -> list[str]:
     return reasons
 
 
-async def send_alert(producer: AIOKafkaProducer, event: dict[str, Any], reasons: list[str]) -> None:
+async def send_candidate(
+    producer: AIOKafkaProducer, event: dict[str, Any], reasons: list[str]
+) -> None:
     transaction_id = str(event.get("transaction_id") or "")
-    alert = {
-        "alert_id": str(uuid.uuid4()),
+    candidate = {
+        "candidate_id": str(uuid.uuid4()),
         "transaction_id": transaction_id,
         "event_time": event.get("event_time"),
         "detected_time": utc_now_iso(),
@@ -55,11 +57,11 @@ async def send_alert(producer: AIOKafkaProducer, event: dict[str, Any], reasons:
         "reasons": reasons,
         "transaction": event,
     }
-    topic = topic_fraud_alerts()
+    topic = topic_rule_candidates()
     await producer.send_and_wait(
         topic,
         key=transaction_id.encode("utf-8") if transaction_id else None,
-        value=json_dumps(alert),
+        value=json_dumps(candidate),
     )
 
 
@@ -89,7 +91,7 @@ async def run() -> None:
         "started",
         extra={
             "topic_in": topic_transactions(),
-            "topic_out": topic_fraud_alerts(),
+            "topic_out": topic_rule_candidates(),
             "group_id": group_rule_engine(),
         },
     )
@@ -109,14 +111,8 @@ async def run() -> None:
 
             reasons = evaluate_rules(event)
             if reasons:
-                await send_alert(producer, event, reasons)
-                logger.info(
-                    "alert",
-                    extra={
-                        "transaction_id": event.get("transaction_id"),
-                        "reasons": reasons,
-                    },
-                )
+                await send_candidate(producer, event, reasons)
+                logger.info("candidate", extra={"transaction_id": event.get("transaction_id"), "reasons": reasons})
 
             if stop_event.is_set():
                 break
