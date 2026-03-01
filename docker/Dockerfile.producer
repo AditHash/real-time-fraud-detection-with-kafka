@@ -1,0 +1,16 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+COPY requirements.producer.txt /app/requirements.producer.txt
+RUN pip install --no-cache-dir -r /app/requirements.producer.txt
+
+COPY producer /app/producer
+COPY common /app/common
+
+ENV PYTHONPATH=/app
+
+CMD ["python", "-m", "producer.csv_producer"]
