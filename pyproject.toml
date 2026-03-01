@@ -7,6 +7,33 @@ requires-python = ">=3.13"
 dependencies = [
     "jupyter>=1.1.1",
     "matplotlib>=3.10.8",
+    "numpy>=1.24.0",
     "pandas>=3.0.1",
     "scikit-learn>=1.8.0",
+    "joblib>=1.3.0",
+]
+
+[project.optional-dependencies]
+services = [
+    "aiokafka>=0.10.0",
+    "fastapi>=0.111.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.7.0",
+    "python-json-logger>=2.0.7",
+    "uvicorn[standard]>=0.30.0",
+]
+producer = [
+    "aiokafka>=0.10.0",
+    "python-json-logger>=2.0.7",
+]
+consumers = [
+    "aiokafka>=0.10.0",
+    "joblib>=1.3.0",
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+    "python-json-logger>=2.0.7",
+    "scikit-learn>=1.3.0",
+]
+ml = [
+    "xgboost>=2.0.0",
 ]
