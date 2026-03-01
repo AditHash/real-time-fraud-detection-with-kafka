@@ -50,9 +50,14 @@ services:
       kafka:
         condition: service_healthy
     entrypoint: ["/bin/bash", "-lc"]
-    command: >
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic transactions --partitions 3 --replication-factor 1 &&
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic fraud_alerts --partitions 3 --replication-factor 1
+    command:
+      - >
+        for i in {1..30}; do
+          kafka-topics --bootstrap-server kafka:9092 --list >/dev/null 2>&1 && break;
+          sleep 2;
+        done;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic transactions --partitions 3 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic fraud_alerts --partitions 3 --replication-factor 1;
     restart: "no"
 
   transaction-api:
