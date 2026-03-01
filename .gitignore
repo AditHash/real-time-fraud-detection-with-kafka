@@ -20,6 +20,9 @@ __pycache__/
 # Local storage (runtime)
 storage/*.db
 
+# Local screenshots
+image.png
+
 # Local tooling caches
 .uv-cache/
 .tmp/

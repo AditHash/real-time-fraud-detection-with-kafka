@@ -25,12 +25,12 @@ INDEX_HTML = """<!doctype html>
     <style>
       :root { color-scheme: dark; }
       body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 0; background: #0b0f14; color: #e6edf3; }
-      header { display: flex; gap: 16px; align-items: baseline; padding: 16px 20px; border-bottom: 1px solid #1f2a37; }
+      header { display: flex; gap: 12px; align-items: center; padding: 14px 20px; border-bottom: 1px solid #1f2a37; position: sticky; top: 0; background: rgba(11,15,20,.85); backdrop-filter: blur(10px); z-index: 10; }
       h1 { font-size: 18px; margin: 0; }
       .pill { font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid #2b3645; color: #9fb0c3; }
       .pill.ok { color: #7ee787; border-color: rgba(126,231,135,.35); }
       .pill.bad { color: #ffa657; border-color: rgba(255,166,87,.35); }
-      main { display: grid; grid-template-columns: 380px 1fr; gap: 16px; padding: 16px 20px; }
+      main { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: 360px 1fr; grid-template-areas: "stats send" "alerts alerts"; gap: 16px; padding: 16px 20px 24px; }
       .card { border: 1px solid #1f2a37; background: #0f1620; border-radius: 10px; overflow: hidden; }
       .card h2 { font-size: 13px; margin: 0; padding: 12px 14px; border-bottom: 1px solid #1f2a37; color: #9fb0c3; }
       .card .body { padding: 12px 14px; }
@@ -38,13 +38,31 @@ INDEX_HTML = """<!doctype html>
       .v { font-size: 14px; }
       .row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed rgba(31,42,55,.7); }
       .row:last-child { border-bottom: 0; }
-      table { width: 100%; border-collapse: collapse; }
+      table { width: 100%; border-collapse: collapse; table-layout: fixed; }
       th, td { font-size: 12px; text-align: left; padding: 10px 10px; border-bottom: 1px solid #1f2a37; vertical-align: top; }
       th { color: #9fb0c3; font-weight: 600; }
       code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 11px; color: #c9d1d9; }
       .src { text-transform: uppercase; font-size: 11px; letter-spacing: .08em; color: #9fb0c3; }
       .score { font-variant-numeric: tabular-nums; }
       .muted { color: #9fb0c3; font-size: 12px; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+      .mono.ellipsis { display: inline-block; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+      .badge { display:inline-flex; align-items:center; gap:6px; padding: 3px 8px; border-radius: 999px; font-size: 11px; border: 1px solid #2b3645; color:#c9d1d9; }
+      .badge.rule { border-color: rgba(255,166,87,.35); color:#ffa657; }
+      .badge.ml { border-color: rgba(88,166,255,.35); color:#58a6ff; }
+      .btn { padding: 8px 10px; border-radius: 10px; border: 1px solid #2b3645; background:#0b0f14; color:#e6edf3; cursor:pointer; }
+      .btn:hover { border-color: #3b4758; }
+      .btn:disabled { opacity:.55; cursor:not-allowed; }
+      .btn.primary { border-color: rgba(126,231,135,.35); background: rgba(126,231,135,.08); color:#7ee787; }
+      .btn.ghost { border-style: dashed; }
+      textarea.input { width:100%; box-sizing:border-box; padding:10px; border-radius:12px; border:1px solid #2b3645; background:#0b0f14; color:#e6edf3; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 12px; }
+      #cardStats { grid-area: stats; }
+      #cardSend { grid-area: send; }
+      #cardAlerts { grid-area: alerts; }
+      @media (max-width: 980px) {
+        main { grid-template-columns: 1fr; grid-template-areas: "stats" "send" "alerts"; }
+        .mono.ellipsis { max-width: 160px; }
+      }
     </style>
   </head>
   <body>
@@ -55,7 +73,7 @@ INDEX_HTML = """<!doctype html>
       <span class="muted">Alert source: rule_engine / ml_engine</span>
     </header>
     <main>
-      <section class="card">
+      <section id="cardStats" class="card">
         <h2>Stats</h2>
         <div class="body">
           <div class="row"><div class="k">Total shown</div><div id="total" class="v">0</div></div>
@@ -64,23 +82,23 @@ INDEX_HTML = """<!doctype html>
           <div class="row"><div class="k">Last update</div><div id="last" class="v">-</div></div>
         </div>
       </section>
-      <section class="card">
+      <section id="cardSend" class="card">
         <h2>Send test transaction</h2>
         <div class="body">
           <div class="muted" style="margin-bottom:10px">Posts to Transaction API → Kafka → consumers → alerts.</div>
           <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px">
-            <button id="btnHigh" style="padding:8px 10px; border-radius:8px; border:1px solid #2b3645; background:#0b0f14; color:#e6edf3; cursor:pointer;">High amount</button>
-            <button id="btnV14" style="padding:8px 10px; border-radius:8px; border:1px solid #2b3645; background:#0b0f14; color:#e6edf3; cursor:pointer;">Low V14</button>
-            <button id="btnNormal" style="padding:8px 10px; border-radius:8px; border:1px solid #2b3645; background:#0b0f14; color:#e6edf3; cursor:pointer;">Normal</button>
+            <button id="btnHigh" class="btn">High amount</button>
+            <button id="btnV14" class="btn">Low V14</button>
+            <button id="btnNormal" class="btn ghost">Normal</button>
           </div>
-          <textarea id="payload" rows="7" style="width:100%; box-sizing:border-box; padding:10px; border-radius:10px; border:1px solid #2b3645; background:#0b0f14; color:#e6edf3; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace; font-size: 12px;"></textarea>
+          <textarea id="payload" class="input" rows="7"></textarea>
           <div style="display:flex; gap:10px; align-items:center; margin-top:10px">
-            <button id="btnSend" style="padding:9px 12px; border-radius:10px; border:1px solid rgba(126,231,135,.35); background: rgba(126,231,135,.08); color:#7ee787; cursor:pointer;">Send</button>
+            <button id="btnSend" class="btn primary">Send</button>
             <span id="sendStatus" class="muted"></span>
           </div>
         </div>
       </section>
-      <section class="card">
+      <section id="cardAlerts" class="card">
         <h2>Latest alerts</h2>
         <div class="body" style="padding:0">
           <table>
@@ -119,6 +137,17 @@ INDEX_HTML = """<!doctype html>
         try { return Number(a.score).toFixed(3); } catch { return String(a.score); }
       }
 
+      function fmtDetected(a) {
+        if (!a.detected_time) return '';
+        try { return new Date(a.detected_time).toLocaleString(); } catch { return String(a.detected_time); }
+      }
+
+      function badgeForSource(src) {
+        const s = String(src || '');
+        const cls = s === 'ml_engine' ? 'badge ml' : (s === 'rule_engine' ? 'badge rule' : 'badge');
+        return `<span class="${cls}">${s || 'unknown'}</span>`;
+      }
+
       function addAlert(a) {
         if (!a || !a.alert_id) return;
         if (state.ids.has(a.alert_id)) return;
@@ -134,18 +163,30 @@ INDEX_HTML = """<!doctype html>
         lastEl.textContent = new Date().toLocaleTimeString();
 
         const tr = document.createElement('tr');
+        const tx = String(a.transaction_id || '');
+        const reason = (a.reasons && a.reasons.join(',')) || a.model || '';
         tr.innerHTML = `
-          <td><code>${a.detected_time || ''}</code></td>
-          <td><code>${a.transaction_id || ''}</code></td>
-          <td class="src">${a.source || ''}</td>
+          <td><code title="${a.detected_time || ''}">${fmtDetected(a)}</code></td>
+          <td><span class="mono ellipsis" title="${tx}" data-copy="${tx}">${tx}</span></td>
+          <td class="src">${badgeForSource(a.source)}</td>
           <td class="score"><code>${fmtScore(a)}</code></td>
-          <td><code>${(a.reasons && a.reasons.join(',')) || a.model || ''}</code></td>
+          <td><code title="${reason}">${reason}</code></td>
         `;
         rowsEl.prepend(tr);
 
         // keep table small
         while (rowsEl.children.length > 200) rowsEl.removeChild(rowsEl.lastChild);
       }
+
+      rowsEl.addEventListener('click', async (ev) => {
+        const el = ev.target;
+        if (!el || !el.getAttribute) return;
+        const v = el.getAttribute('data-copy');
+        if (!v) return;
+        try {
+          await navigator.clipboard.writeText(v);
+        } catch {}
+      });
 
       async function pollOnce() {
         const res = await fetch('/api/alerts?limit=50&offset=0');
