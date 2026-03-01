@@ -15,7 +15,7 @@ from fastapi.responses import StreamingResponse
 from common.codec import json_loads
 from common.kafka import create_consumer, stop_safely
 from common.logging import setup_logging
-from common.settings import group_alert_service, topic_fraud_alerts
+from common.settings import group_alert_service, topic_fraud_alerts, topic_rule_candidates
 
 logger = logging.getLogger("alert_service")
 
@@ -66,7 +66,7 @@ def _insert_alert(conn: sqlite3.Connection, alert: dict[str, Any], payload_json:
 
 async def _consumer_loop(app: FastAPI) -> None:
     consumer = await create_consumer(
-        topic=topic_fraud_alerts(),
+        topic=[topic_fraud_alerts(), topic_rule_candidates()],
         group_id=group_alert_service(),
         client_id="alert-service",
     )
@@ -75,7 +75,7 @@ async def _consumer_loop(app: FastAPI) -> None:
     logger.info(
         "consumer_started",
         extra={
-            "topic": topic_fraud_alerts(),
+            "topics": [topic_fraud_alerts(), topic_rule_candidates()],
             "group_id": group_alert_service(),
             "db": str(app.state.db_path),
         },

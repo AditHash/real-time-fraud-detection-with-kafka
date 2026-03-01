@@ -16,15 +16,16 @@ async def create_producer(*, client_id: str) -> AIOKafkaProducer:
 
 async def create_consumer(
     *,
-    topic: str,
+    topic: str | list[str],
     group_id: str,
     client_id: str,
     auto_offset_reset: str = "earliest",
     enable_auto_commit: bool = True,
     max_poll_records: int = 500,
 ) -> AIOKafkaConsumer:
+    topics = [topic] if isinstance(topic, str) else list(topic)
     consumer = AIOKafkaConsumer(
-        topic,
+        *topics,
         bootstrap_servers=kafka_bootstrap_servers(),
         group_id=group_id,
         client_id=client_id,
