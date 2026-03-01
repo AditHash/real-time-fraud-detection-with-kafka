@@ -109,6 +109,7 @@ services:
         condition: service_started
     environment:
       ALERT_SERVICE_URL: "http://alert-service:8001"
+      TRANSACTION_API_URL: "http://transaction-api:8000"
       HOST: "0.0.0.0"
       PORT: "8002"
     ports:

@@ -17,6 +17,9 @@ model/model_xgb.pkl
 __pycache__/
 *.py[cod]
 
+# Local storage (runtime)
+storage/*.db
+
 # Local tooling caches
 .uv-cache/
 .tmp/

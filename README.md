@@ -45,6 +45,8 @@ APIs:
 - Alert Service: `http://localhost:8001` (GET `/alerts`)
 - Dashboard: `http://localhost:8002` (UI)
 
+From the dashboard you can also send test transactions (no `curl` needed).
+
 Send a test transaction:
 
 ```bash

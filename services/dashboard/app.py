@@ -12,6 +12,10 @@ def _alert_service_url() -> str:
     return os.getenv("ALERT_SERVICE_URL", "http://alert-service:8001").rstrip("/")
 
 
+def _transaction_api_url() -> str:
+    return os.getenv("TRANSACTION_API_URL", "http://transaction-api:8000").rstrip("/")
+
+
 INDEX_HTML = """<!doctype html>
 <html lang="en">
   <head>
@@ -58,6 +62,22 @@ INDEX_HTML = """<!doctype html>
           <div class="row"><div class="k">Rule alerts</div><div id="rule" class="v">0</div></div>
           <div class="row"><div class="k">ML alerts</div><div id="ml" class="v">0</div></div>
           <div class="row"><div class="k">Last update</div><div id="last" class="v">-</div></div>
+        </div>
+      </section>
+      <section class="card">
+        <h2>Send test transaction</h2>
+        <div class="body">
+          <div class="muted" style="margin-bottom:10px">Posts to Transaction API → Kafka → consumers → alerts.</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px">
+            <button id="btnHigh" style="padding:8px 10px; border-radius:8px; border:1px solid #2b3645; background:#0b0f14; color:#e6edf3; cursor:pointer;">High amount</button>
+            <button id="btnV14" style="padding:8px 10px; border-radius:8px; border:1px solid #2b3645; background:#0b0f14; color:#e6edf3; cursor:pointer;">Low V14</button>
+            <button id="btnNormal" style="padding:8px 10px; border-radius:8px; border:1px solid #2b3645; background:#0b0f14; color:#e6edf3; cursor:pointer;">Normal</button>
+          </div>
+          <textarea id="payload" rows="7" style="width:100%; box-sizing:border-box; padding:10px; border-radius:10px; border:1px solid #2b3645; background:#0b0f14; color:#e6edf3; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace; font-size: 12px;"></textarea>
+          <div style="display:flex; gap:10px; align-items:center; margin-top:10px">
+            <button id="btnSend" style="padding:9px 12px; border-radius:10px; border:1px solid rgba(126,231,135,.35); background: rgba(126,231,135,.08); color:#7ee787; cursor:pointer;">Send</button>
+            <span id="sendStatus" class="muted"></span>
+          </div>
         </div>
       </section>
       <section class="card">
@@ -136,6 +156,49 @@ INDEX_HTML = """<!doctype html>
         }
       }
 
+      const payloadEl = document.getElementById('payload');
+      const sendStatusEl = document.getElementById('sendStatus');
+      const btnSend = document.getElementById('btnSend');
+      const btnHigh = document.getElementById('btnHigh');
+      const btnV14 = document.getElementById('btnV14');
+      const btnNormal = document.getElementById('btnNormal');
+
+      const examples = {
+        high: {"features": {"Amount": 5000}},
+        v14: {"features": {"V14": -10}},
+        normal: {"features": {"Amount": 12.34, "V14": -1.2}},
+      };
+      payloadEl.value = JSON.stringify(examples.high, null, 2);
+
+      function setExample(obj) {
+        payloadEl.value = JSON.stringify(obj, null, 2);
+      }
+      btnHigh.onclick = () => setExample(examples.high);
+      btnV14.onclick = () => setExample(examples.v14);
+      btnNormal.onclick = () => setExample(examples.normal);
+
+      async function sendTx() {
+        sendStatusEl.textContent = 'sending...';
+        btnSend.disabled = true;
+        try {
+          const body = JSON.parse(payloadEl.value);
+          const res = await fetch('/api/transactions', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body),
+          });
+          const txt = await res.text();
+          if (!res.ok) throw new Error(txt || 'request failed');
+          sendStatusEl.textContent = 'sent (check alerts below)';
+        } catch (e) {
+          sendStatusEl.textContent = 'error: ' + (e && e.message ? e.message : String(e));
+        } finally {
+          btnSend.disabled = false;
+          setTimeout(() => { sendStatusEl.textContent = ''; }, 6000);
+        }
+      }
+      btnSend.onclick = sendTx;
+
       function startSSE() {
         setConn(false);
         const es = new EventSource('/api/stream');
@@ -196,6 +259,15 @@ def create_app() -> FastAPI:
 
         return StreamingResponse(gen(), media_type="text/event-stream")
 
+    @app.post("/api/transactions")
+    async def proxy_transactions(payload: dict) -> dict:
+        url = f"{_transaction_api_url()}/transactions"
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.post(url, json=payload)
+        if r.status_code >= 400:
+            raise HTTPException(status_code=502, detail=r.text or "transaction-api unavailable")
+        return r.json()
+
     return app
 
 
@@ -208,4 +280,3 @@ if __name__ == "__main__":
     host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", "8002"))
     uvicorn.run("services.dashboard.app:app", host=host, port=port, log_level="info")
-
