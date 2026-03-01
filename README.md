@@ -83,6 +83,34 @@ Bring up the stack:
 docker compose up -d --build
 ```
 
+## How to Run (step-by-step)
+
+1) Start Docker Desktop (if on Windows/macOS)
+2) From the repo root, start the stack:
+
+```bash
+docker compose up -d --build
+```
+
+3) Open the dashboard:
+
+- `http://localhost:8002`
+
+4) Generate events:
+
+- Use the **Send test transaction** panel in the dashboard, or
+- Start the CSV streamer (requires `data/creditcard.csv`):
+
+```bash
+docker compose --profile demo up -d csv-producer
+```
+
+5) Stop / cleanup:
+
+```bash
+docker compose down -v
+```
+
 Open:
 
 - Dashboard: `http://localhost:8002`
