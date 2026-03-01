@@ -22,6 +22,7 @@ storage/*.db
 
 # Local screenshots
 image.png
+dashboard.png
 
 # Local tooling caches
 .uv-cache/

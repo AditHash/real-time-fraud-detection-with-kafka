@@ -85,7 +85,7 @@ INDEX_HTML = """<!doctype html>
       <section id="cardSend" class="card">
         <h2>Send test transaction</h2>
         <div class="body">
-          <div class="muted" style="margin-bottom:10px">Posts to Transaction API → Kafka → consumers → alerts.</div>
+          <div class="muted" style="margin-bottom:10px">Flow: Transaction API → Kafka (transactions) → Rule Engine (candidates) → ML Engine (confirm) → Alerts.</div>
           <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px">
             <button id="btnHigh" class="btn">High amount</button>
             <button id="btnV14" class="btn">Low V14</button>

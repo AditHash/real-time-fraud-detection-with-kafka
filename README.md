@@ -47,6 +47,13 @@ APIs:
 
 From the dashboard you can also send test transactions (no `curl` needed).
 
+Workflow:
+
+- `transactions` topic receives all incoming transactions.
+- `rule-engine` consumes `transactions` and publishes suspicious events to `rule_candidates`.
+- `ml-engine` consumes `rule_candidates` and publishes confirmed alerts to `fraud_alerts`.
+- `alert-service` consumes both `rule_candidates` and `fraud_alerts` (so you can see candidates and confirmed alerts in one place).
+
 Send a test transaction:
 
 ```bash

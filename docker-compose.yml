@@ -57,6 +57,7 @@ services:
           sleep 2;
         done;
         kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic transactions --partitions 3 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic rule_candidates --partitions 3 --replication-factor 1;
         kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic fraud_alerts --partitions 3 --replication-factor 1;
     restart: "no"
 
@@ -90,6 +91,7 @@ services:
     environment:
       KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
       TOPIC_FRAUD_ALERTS: "fraud_alerts"
+      TOPIC_RULE_CANDIDATES: "rule_candidates"
       GROUP_ALERT_SERVICE: "alert-service"
       ALERT_DB_PATH: "/app/storage/alerts.db"
       HOST: "0.0.0.0"
@@ -128,7 +130,7 @@ services:
     environment:
       KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
       TOPIC_TRANSACTIONS: "transactions"
-      TOPIC_FRAUD_ALERTS: "fraud_alerts"
+      TOPIC_RULE_CANDIDATES: "rule_candidates"
       GROUP_RULE_ENGINE: "rule-engine"
       RULE_AMOUNT_THRESHOLD: "2000"
       RULE_V14_LTE: "-8"
@@ -145,7 +147,7 @@ services:
         condition: service_completed_successfully
     environment:
       KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
-      TOPIC_TRANSACTIONS: "transactions"
+      TOPIC_RULE_CANDIDATES: "rule_candidates"
       TOPIC_FRAUD_ALERTS: "fraud_alerts"
       GROUP_ML_ENGINE: "ml-engine"
       MODEL_DIR: "/app/model"
