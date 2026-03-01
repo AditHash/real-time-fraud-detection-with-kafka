@@ -15,11 +15,15 @@ def setup_logging(service_name: str) -> None:
     for handler in list(root.handlers):
         root.removeHandler(handler)
 
+    class _ServiceFilter(logging.Filter):
+        def filter(self, record: logging.LogRecord) -> bool:  # type: ignore[override]
+            setattr(record, "service", service_name)
+            return True
+
     handler = logging.StreamHandler()
     formatter = jsonlogger.JsonFormatter(
         "%(asctime)s %(levelname)s %(name)s %(message)s %(service)s"
     )
     handler.setFormatter(formatter)
+    handler.addFilter(_ServiceFilter())
     root.addHandler(handler)
-
-    logging.LoggerAdapter(logging.getLogger(__name__), {"service": service_name})
