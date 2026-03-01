@@ -43,3 +43,89 @@ services:
       interval: 10s
       timeout: 10s
       retries: 10
+
+  init-kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-lc"]
+    command: >
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic transactions --partitions 3 --replication-factor 1 &&
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic fraud_alerts --partitions 3 --replication-factor 1
+    restart: "no"
+
+  transaction-api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    depends_on:
+      kafka:
+        condition: service_healthy
+      init-kafka:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      TOPIC_TRANSACTIONS: "transactions"
+      HOST: "0.0.0.0"
+      PORT: "8000"
+    ports:
+      - "8000:8000"
+    command: ["python", "-m", "services.transaction_api.app"]
+
+  alert-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    depends_on:
+      kafka:
+        condition: service_healthy
+      init-kafka:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      TOPIC_FRAUD_ALERTS: "fraud_alerts"
+      GROUP_ALERT_SERVICE: "alert-service"
+      ALERT_DB_PATH: "/app/storage/alerts.db"
+      HOST: "0.0.0.0"
+      PORT: "8001"
+    ports:
+      - "8001:8001"
+    volumes:
+      - "./storage:/app/storage"
+    command: ["python", "-m", "services.alert_service.app"]
+
+  rule-engine:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.consumer
+    depends_on:
+      kafka:
+        condition: service_healthy
+      init-kafka:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      TOPIC_TRANSACTIONS: "transactions"
+      TOPIC_FRAUD_ALERTS: "fraud_alerts"
+      GROUP_RULE_ENGINE: "rule-engine"
+      RULE_AMOUNT_THRESHOLD: "2000"
+      RULE_V14_LTE: "-8"
+    command: ["python", "-m", "consumers.rule_engine.main"]
+
+  ml-engine:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.consumer
+    depends_on:
+      kafka:
+        condition: service_healthy
+      init-kafka:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      TOPIC_TRANSACTIONS: "transactions"
+      TOPIC_FRAUD_ALERTS: "fraud_alerts"
+      GROUP_ML_ENGINE: "ml-engine"
+      MODEL_DIR: "/app/model"
+    command: ["python", "-m", "consumers.ml_engine.main"]
