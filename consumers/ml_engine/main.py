@@ -18,7 +18,7 @@ from aiokafka import AIOKafkaProducer
 from common.codec import json_dumps, json_loads, utc_now_iso
 from common.kafka import create_consumer, create_producer, stop_safely
 from common.logging import setup_logging
-from common.settings import group_ml_engine, topic_fraud_alerts, topic_transactions
+from common.settings import group_ml_engine, topic_fraud_alerts, topic_rule_candidates
 
 
 logger = logging.getLogger("ml_engine")
@@ -57,6 +57,7 @@ async def send_alert(
     proba: float,
     threshold: float,
     model_name: str,
+    rule_reasons: list[str] | None = None,
 ) -> None:
     transaction_id = str(event.get("transaction_id") or "")
     alert = {
@@ -68,6 +69,7 @@ async def send_alert(
         "model": model_name,
         "score": proba,
         "threshold": threshold,
+        "rule_reasons": rule_reasons or [],
         "transaction": event,
     }
     topic = topic_fraud_alerts()
@@ -97,7 +99,7 @@ async def run() -> None:
     model_name = str(meta.get("selected_model", "model"))
 
     consumer = await create_consumer(
-        topic=topic_transactions(),
+        topic=topic_rule_candidates(),
         group_id=group_ml_engine(),
         client_id="ml-engine",
     )
@@ -118,7 +120,7 @@ async def run() -> None:
     logger.info(
         "started",
         extra={
-            "topic_in": topic_transactions(),
+            "topic_in": topic_rule_candidates(),
             "topic_out": topic_fraud_alerts(),
             "group_id": group_ml_engine(),
             "model_path": str(model_path),
@@ -140,7 +142,10 @@ async def run() -> None:
                 logger.exception("bad_message", extra={"topic": msg.topic, "partition": msg.partition})
                 continue
 
-            features = event.get("features") or {}
+            base_event = event.get("transaction") if isinstance(event.get("transaction"), dict) else event
+            rule_reasons = event.get("reasons") if isinstance(event.get("reasons"), list) else []
+
+            features = base_event.get("features") or {}
             if not isinstance(features, dict):
                 continue
 
@@ -150,17 +155,19 @@ async def run() -> None:
             if proba >= threshold:
                 await send_alert(
                     producer,
-                    event=event,
+                    event=base_event,
                     proba=proba,
                     threshold=threshold,
                     model_name=model_name,
+                    rule_reasons=rule_reasons,
                 )
                 logger.info(
                     "alert",
                     extra={
-                        "transaction_id": event.get("transaction_id"),
+                        "transaction_id": base_event.get("transaction_id"),
                         "score": proba,
                         "threshold": threshold,
+                        "rule_reasons": rule_reasons,
                     },
                 )
 
