@@ -95,6 +95,21 @@ services:
       - "./storage:/app/storage"
     command: ["python", "-m", "services.alert_service.app"]
 
+  dashboard:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    depends_on:
+      alert-service:
+        condition: service_started
+    environment:
+      ALERT_SERVICE_URL: "http://alert-service:8001"
+      HOST: "0.0.0.0"
+      PORT: "8002"
+    ports:
+      - "8002:8002"
+    command: ["python", "-m", "services.dashboard.app"]
+
   rule-engine:
     build:
       context: .

@@ -43,6 +43,7 @@ APIs:
 
 - Transaction API: `http://localhost:8000` (POST `/transactions`)
 - Alert Service: `http://localhost:8001` (GET `/alerts`)
+- Dashboard: `http://localhost:8002` (UI)
 
 Send a test transaction:
 
