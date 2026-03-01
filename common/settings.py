@@ -15,6 +15,10 @@ def topic_fraud_alerts() -> str:
     return os.getenv("TOPIC_FRAUD_ALERTS", "fraud_alerts")
 
 
+def topic_rule_candidates() -> str:
+    return os.getenv("TOPIC_RULE_CANDIDATES", "rule_candidates")
+
+
 def group_rule_engine() -> str:
     return os.getenv("GROUP_RULE_ENGINE", "rule-engine")
 
